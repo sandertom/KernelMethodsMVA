@@ -20,10 +20,10 @@ class Linear:
 
 class KernelSVC:
     
-    def __init__(self, C, kernel, epsilon = 1e-3):
+    def __init__(self, C,  kernel,epsilon = 1e-3):
         self.type = 'non-linear'
         self.C = C                               
-        self.kernel = kernel        
+        self.kernel = kernel       
         self.alpha = None
         self.support = None
         self.epsilon = epsilon
@@ -81,7 +81,10 @@ class KernelSVC:
         # Output: vector of size N
         return self.kernel(x, self.support2)@self.alpha2
     
-    
+    def predcit_proba(self,X):
+        d = self.separating_function(X)
+        return 2 * (d+self.b> 0) - 1
+
     def predict(self, X):
         """ Predict y values in {-1, 1} """
         d = self.separating_function(X)
@@ -101,7 +104,7 @@ def OVO_train(X_train, y_train, sigma, C):
             y_train_ = y_train_[np.logical_or(indicies1, indicies2)]
             X_train_ = X_train[np.logical_or(indicies1, indicies2)]
             kernel = RBF(sigma).kernel
-            model = KernelSVC(C=C, kernel=kernel)
+            model = KernelSVC(C=C,  kernel=kernel)
             model.fit(X_train_, y_train_)
             dic[(i,j)]=model
     return dic
@@ -119,3 +122,39 @@ def OVO_test(X_test, dic):
                     res[k][j]+=1
     res = np.argmax(res, axis=1)
     return res
+"""
+def OVR_train(X_train, y_train, sigma, C):
+    dic = {}
+    for i in range(10):
+        print("value of i: {}".format(i))
+        indicies1 = y_train==i
+        indicies2 = 1 - indicies1
+        y_train_ = y_train.copy()
+        y_train_[indicies1] = 1
+        y_train_[indicies2] = -1
+        kernel = RBF(sigma).kernel
+        model = KernelSVC(C=C,kernel=kernel)
+        model.fit(X_train, y_train_)
+        dic[i]=model
+    return dic
+
+
+
+def OVR_test(X_test, dic):
+    res = [0 for i in range(len(X_test)]
+    for k in range(len(X_test)):
+        if k%50==0:
+            print(k)
+        for i in range(10):
+            if dic[i].predict([X_test[k]])==1:
+                res[k][i]+=1
+        for i in range(9):
+            for j in range(i+1, 10):
+                if dic[(i,j)].predict([X_test[k]])==1:
+                    res[k][i]+=1
+                else:
+                    res[k][j]+=1
+    res = np.argmax(res, axis=1)
+    return res
+
+    """

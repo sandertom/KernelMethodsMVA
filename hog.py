@@ -1,9 +1,20 @@
+"""
+This implementation is inspired by the original implementation of skimage's HOG implementation.
+https://github.com/scikit-image/scikit-image/blob/main/skimage/feature/_hog.py#L48-L307
+"""
+
+
 import numpy as np
 
 def _hog_normalize_block(block, eps=1e-5):
-    return block / (np.sum(np.abs(block)) + eps)
+    #Normalizes each block with L1 refularization
+    out = block / np.sqrt(np.sum(block ** 2) + eps ** 2)
+    out = np.minimum(out, 0.2)
+    out = out / np.sqrt(np.sum(out ** 2) + eps ** 2)
+    return out
 
 def _hog_channel_gradient(channel):
+    #Computes the horizontal and vertical gradients of the image
     g_row = np.empty(channel.shape, dtype=channel.dtype)
     g_row[0, :] = 0
     g_row[-1, :] = 0
@@ -17,7 +28,7 @@ def _hog_channel_gradient(channel):
 def cell_hog(magnitude,orientation,orientation_start, orientation_end, cell_columns, cell_rows,\
              column_index, row_index, size_columns, size_rows, range_rows_start, range_rows_stop,\
              range_columns_start, range_columns_stop):
-    
+    #Computes the weight of the gradient for a range of orientations in one cell
     total = 0.
 
     for cell_row in range(range_rows_start, range_rows_stop):
@@ -41,7 +52,7 @@ def cell_hog(magnitude,orientation,orientation_start, orientation_end, cell_colu
 
 def hog_histograms(gradient_columns,gradient_rows,cell_columns,cell_rows,size_columns, size_rows,\
                    number_of_cells_columns, number_of_cells_rows, number_of_orientations, orientation_histogram):
-
+    #computes the histogram of orientations for each cell
     magnitude = np.hypot(gradient_columns,gradient_rows)
     orientation = np.rad2deg(np.arctan2(gradient_rows, gradient_columns)) % 180
 
@@ -80,6 +91,7 @@ def hog_histograms(gradient_columns,gradient_rows,cell_columns,cell_rows,size_co
             r += cell_rows
 
 def hog(image, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(3, 3)):
+    #Combines evertything 
     g_row, g_col = _hog_channel_gradient(image)
 
     s_row, s_col = image.shape[:2]
