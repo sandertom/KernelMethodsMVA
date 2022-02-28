@@ -28,3 +28,5 @@ https://scikit-learn.org/stable/auto_examples/decomposition/plot_image_denoising
 
 https://scikit-learn.org/stable/auto_examples/decomposition/plot_faces_decomposition.html#sphx-glr-auto-examples-decomposition-plot-faces-decomposition-py
 -< pareil
+
+CMU with patches https://trucvietle.me/files/601-report.pdf
