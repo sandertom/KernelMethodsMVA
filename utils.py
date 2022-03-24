@@ -1,3 +1,19 @@
+import numpy as np
+from tqdm import tqdm
+import numpy as np
+import pandas as pd
+import numpy as np 
+import pandas as pd 
+import matplotlib.pyplot as plt
+from utils import *
+from sklearn.cluster import KMeans
+from tqdm import tqdm
+from sklearn.svm import SVC
+from SVM import OVO_test, OVO_train
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+
 def rgb2gray(x):
     #last axis of x must be the number of axis
     return x@[0.2125, 0.7154, 0.0721]
@@ -36,7 +52,7 @@ def whiten_patches(patches):
     feats = patches.reshape(len(patches), -1)
     C = np.cov(feats, rowvar=False)  # 108 x 108 (for 6x6x3 kernels)
     M = np.mean(feats, axis=0)
-    d, V = np.linalg.eig(C)
+    d, V = np.linalg.eigh(C)
     D = np.diag(np.sqrt(1. / (d + 0.1)))
     P = np.matmul(np.matmul(V, D), V.T)
     feats = np.matmul(feats - M, P)
