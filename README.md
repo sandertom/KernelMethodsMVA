@@ -30,7 +30,3 @@ https://scikit-learn.org/stable/auto_examples/decomposition/plot_faces_decomposi
 -< pareil
 
 CMU with patches https://trucvietle.me/files/601-report.pdf
-
-
-
-COUILLE
