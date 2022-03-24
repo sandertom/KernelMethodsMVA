@@ -1,22 +1,12 @@
+"""
+This is an implementation of a Kernel SVM classifier based on the coding homework of the class.
+We add the implementation of the training of a One versus One classifier.
+"""
+
 import numpy as np
 import pickle as pkl
 from scipy import optimize
-
-class RBF:
-    def __init__(self, sigma=1.):
-        self.sigma = sigma  ## the variance of the kernel
-    def kernel(self,X,Y):
-        ## Input vectors X and Y of shape Nxd and Mxd
-        X2,Y2 = np.linalg.norm(X, ord=2, axis=1, keepdims=True)**2, np.linalg.norm(Y, ord=2, axis=1, keepdims=True)**2
-        XY = X@Y.T
-        aux = X2+Y2.T-2*XY
-        return np.exp(-aux/(2*self.sigma**2)) ## Matrix of shape NxM
-    
-class Linear:
-    #def __init__(self):
-    def kernel(self,X,Y):
-        ## Input vectors X and Y of shape Nxd and Mxd
-        return X@Y.T## Matrix of shape NxM
+import kernels
 
 class KernelSVC:
     
@@ -91,6 +81,9 @@ class KernelSVC:
         return 2 * (d+self.b> 0) - 1
 
 def OVO_train(X_train, y_train, sigma, C):
+    """
+    trains a RBF kernel SVM classifier using One versus One. The result is a dictionnary, with one 
+    """
     dic = {}
     for i in range(9):
         print("value of i: {}".format(i))
@@ -103,13 +96,14 @@ def OVO_train(X_train, y_train, sigma, C):
             y_train_[indicies2] = -1
             y_train_ = y_train_[np.logical_or(indicies1, indicies2)]
             X_train_ = X_train[np.logical_or(indicies1, indicies2)]
-            kernel = RBF(sigma).kernel
+            kernel = kernels.RBF(sigma).kernel
             model = KernelSVC(C=C,  kernel=kernel)
             model.fit(X_train_, y_train_)
             dic[(i,j)]=model
     return dic
 
 def OVO_test(X_test, dic):
+
     res = [[0 for i in range(10)] for j in range(len(X_test))]
     for k in range(len(X_test)):
         if k%50==0:

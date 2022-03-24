@@ -30,3 +30,5 @@ https://scikit-learn.org/stable/auto_examples/decomposition/plot_faces_decomposi
 -< pareil
 
 CMU with patches https://trucvietle.me/files/601-report.pdf
+Article original de NG bcp mieux expliqué: http://proceedings.mlr.press/v15/coates11a/coates11a.pdf
+Une implémentation from scratch récente : https://github.com/alisher-ai/unsupervised-feature-learning
