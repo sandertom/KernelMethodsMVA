@@ -25,3 +25,17 @@ class Polynomial:
         self.degree = degree  ## the variance of the kernel
     def kernel(self,X,Y):
         return (X@Y.T)**self.degree ## Matrix of shape NxM
+
+class LaplacianRBFKernel:
+    def __init__(self, sigma):
+        self.sigma = sigma
+
+    def kernel(self, X, Y):
+        n = len(X)
+        m = len(Y)
+        K = np.zeros((n, m))
+
+        for i in range(m):
+            K[:, i] = np.sum(np.abs(X - Y[i, :]), axis=1)
+        K /= self.sigma ** 2
+        return np.exp(-K)
