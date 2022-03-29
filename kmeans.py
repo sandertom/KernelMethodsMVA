@@ -1,12 +1,6 @@
 import numpy as np
 
 class Kmeans:
-    """
-    m: number of clusters (assumed between 0 and m - 1)
-    d: dimension of the space in which the data lives
-    assignments: assignment
-    mu: centers of different clusters
-    """
     def __init__(self, m):
         self.m = m #number of clusters
         self.dim = None

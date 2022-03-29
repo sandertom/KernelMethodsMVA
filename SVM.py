@@ -80,7 +80,7 @@ class KernelSVC:
         d = self.separating_function(X)
         return 2 * (d+self.b> 0) - 1
 
-def OVO_train(X_train, y_train, sigma, C):
+def OVO_train(X_train, y_train, sigma, C, ker=kernels.LaplacianRBFKernel):
     """
     trains a RBF kernel SVM classifier using One versus One. The result is a dictionnary, with one 
     """
@@ -96,7 +96,7 @@ def OVO_train(X_train, y_train, sigma, C):
             y_train_[indicies2] = -1
             y_train_ = y_train_[np.logical_or(indicies1, indicies2)]
             X_train_ = X_train[np.logical_or(indicies1, indicies2)]
-            kernel = kernels.RBF(sigma).kernel
+            kernel = ker(sigma).kernel
             model = KernelSVC(C=C,  kernel=kernel)
             model.fit(X_train_, y_train_)
             dic[(i,j)]=model
