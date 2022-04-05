@@ -7,6 +7,7 @@ import numpy as np
 import pickle as pkl
 from scipy import optimize
 import kernels
+from tqdm import tqdm
 
 class KernelSVC:
     
@@ -80,34 +81,33 @@ class KernelSVC:
         d = self.separating_function(X)
         return 2 * (d+self.b> 0) - 1
 
-def OVO_train(X_train, y_train, sigma, C, ker=kernels.LaplacianRBFKernel):
+def OVO_train(X_train, y_train, sigma, C,ker):# ker=kernels.LaplacianRBFKernel):
     """
     trains a RBF kernel SVM classifier using One versus One. The result is a dictionnary, with one 
     """
     dic = {}
-    for i in range(9):
-        print("value of i: {}".format(i))
-        for j in range(i+1,10):
-            print("value of j: {}".format(j))
-            indicies1 = y_train==i
-            indicies2 = y_train==j
-            y_train_ = y_train.copy()
-            y_train_[indicies1] = 1
-            y_train_[indicies2] = -1
-            y_train_ = y_train_[np.logical_or(indicies1, indicies2)]
-            X_train_ = X_train[np.logical_or(indicies1, indicies2)]
-            kernel = ker(sigma).kernel
-            model = KernelSVC(C=C,  kernel=kernel)
-            model.fit(X_train_, y_train_)
-            dic[(i,j)]=model
+    indices = np.triu_indices(10, k=1)
+    for idx in tqdm(range(len(indices[0]))):
+        i = indices[0][idx]
+        j = indices[1][idx]
+        indicies1 = y_train==i
+        indicies2 = y_train==j
+        y_train_ = y_train.copy()
+        y_train_[indicies1] = 1
+        y_train_[indicies2] = -1
+        y_train_ = y_train_[np.logical_or(indicies1, indicies2)]
+        X_train_ = X_train[np.logical_or(indicies1, indicies2)]
+        kernel = ker(sigma).kernel
+        model = KernelSVC(C=C,  kernel=kernel)
+        model.fit(X_train_, y_train_)
+        dic[(i,j)]=model
     return dic
 
 def OVO_test(X_test, dic):
 
     res = [[0 for i in range(10)] for j in range(len(X_test))]
-    for k in range(len(X_test)):
-        if k%50==0:
-            print(k)
+    for k in tqdm(range(len(X_test))):
+
         for i in range(9):
             for j in range(i+1, 10):
                 if dic[(i,j)].predict([X_test[k]])==1:

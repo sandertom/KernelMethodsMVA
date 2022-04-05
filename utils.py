@@ -20,42 +20,37 @@ def rgb2gray(x):
 
 
 
-def extract_patch(image, patch_size):
-    corner = np.random.randint(32 - patch_size, size=2)
+def extract_random_patch(image, rf_size):
+    corner = np.random.randint(32 - rf_size, size=2)
     i,j = corner[0], corner[1]
-    patch = image[i:i+patch_size, j:j+patch_size, :]
+    patch = image[i:i+rf_size, j:j+rf_size, :]
     patch = patch - np.mean(patch)
-
-    patch/=(np.std(patch)+0.01)
+    patch/=(np.std(patch)+1)
     return patch
 
-
-def extract_patches(dataset, num_patches, patch_size):
-    n_images = len(dataset)
-    num_patches_per_image = num_patches//n_images
-    patches = np.zeros((n_images, num_patches_per_image, patch_size, patch_size, 3))
-    for i in tqdm(range(n_images)):
-        for j in range(num_patches_per_image):
-            patch = extract_patch(dataset[i], patch_size)
-            patches[i, j] = patch
-    return patches
+def extract_patches(dataset, num_patches, rf_size):
+    print("Extracting patches...")
+    patches = np.zeros((num_patches, rf_size*rf_size*3))
+    for i in tqdm(range(num_patches)):
+        img_idx = i%len(dataset)
+        patch = extract_random_patch(dataset[img_idx], rf_size)
+        patches[i] = patch.reshape(-1)
+    return patches 
 
 def cluster_patches(patches, k):
-    n = len(patches)
-    data = patches.reshape(n,-1)
-    clust = KMeans(n_clusters=k)
-    clust.fit(data)
-    return clust.labels_, clust.cluster_centers_
+    print("Clustering patches...")
+    clust = KMeans(n_clusters = k, max_iter = 50, n_init = 5, verbose= True)
+    clust.fit(patches)
+    return clust.cluster_centers_, clust.labels_
 
 def whiten_patches(patches):
-    """ whiten """
-    feats = patches.reshape(len(patches), -1)
-    C = np.cov(feats, rowvar=False)  # 108 x 108 (for 6x6x3 kernels)
-    M = np.mean(feats, axis=0)
+    
+    C = np.cov(patches, rowvar=False)  
+    M = np.mean(patches, axis=0)
     d, V = np.linalg.eigh(C)
     D = np.diag(np.sqrt(1. / (d + 0.1)))
     P = np.matmul(np.matmul(V, D), V.T)
-    feats = np.matmul(feats - M, P)
+    feats = np.matmul(patches - M, P)
 
     return feats, M, P 
 
@@ -72,11 +67,11 @@ def compute_features_patch(patch, centroids):
     k = len(centroids)
     z = np.zeros(k)
     for i, centroid in enumerate(centroids):
-        z[i] = np.linalg.norm(patch.reshape(-1) - centroid)
+        z[i] = np.linalg.norm(patch - centroid)
     f =  np.maximum(np.zeros(k), np.mean(z)*np.ones(k) - z)
     return f
 
-def compute_features_img(img, centroids, stride, patch_size):
+def compute_features_img(img, centroids, stride, patch_size, M, P):
     k = len(centroids)
     img_feat = np.zeros(k)
     img_size = img.shape[0]
@@ -85,6 +80,10 @@ def compute_features_img(img, centroids, stride, patch_size):
         j = 0
         while j+patch_size < img_size:
             patch = img[i:i+patch_size, j:j+patch_size,:]
+            patch = patch.reshape(-1)
+            
+            patch = (patch - patch.mean())/(patch.std()+1) #normalize
+            patch = np.matmul(patch - M, P) #whiten
             j+=stride
             f = compute_features_patch(patch, centroids)
             img_feat += f
@@ -92,27 +91,26 @@ def compute_features_img(img, centroids, stride, patch_size):
         i+=stride
     return img_feat
 
-def compute_features(dataset, centroids, stride, patch_size):
+def compute_features(dataset, centroids, stride, patch_size, M, P):
+
     X = []    
-    for img in tqdm(dataset):
+    for idx in tqdm(range(len(dataset))):
+        img = dataset[idx]
         quart = get_quarters(img)
         f = []
         for i in range(4):
-            quarter_feats = compute_features_img(quart[i], centroids, stride, patch_size)
-            #shape num_patches_in_quarter x k
-            f.append(quarter_feats) #only k features per quarter
+            quarter_feats = compute_features_img(quart[i], centroids, stride, patch_size, M, P)
+            f.append(quarter_feats) #k features per quarter
         #print(f.shape)
         X.append(f)
     X = np.array(X)
     X = X.reshape(len(X), -1)
-    X -= X.mean(axis=0, keepdims=True)
-    #X /= np.std(X, axis=0)
     return X
-def plot_image(image, ax):
-    im = np.zeros_like(image)
-    for i in range(3):
-        channel_min = np.min(image[:,:,i], keepdims=True)
-        channel_max = np.max(image[:,:,i], keepdims=True)
-        im[:,:,i] = (image[:,:,i] - channel_min) / (channel_max - channel_min)
-    ax.imshow(im)
+
+def post_processing(X):
+    X -= X.mean(axis=0, keepdims=True)
+    X /= (0.01 + np.std(X, axis=0))
+    #X = np.hstack([X, np.ones((len(X), 1))])
+    return X
+
 
