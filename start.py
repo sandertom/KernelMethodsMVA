@@ -26,7 +26,6 @@ Ytr = np.array(Ytr_['Prediction'])
 X_tot = np.vstack([Xtr, Xte]) #Entire dataset used for feature extraction
 
 ##Extract
-print("extracting patches..")
 patches = extract_patches(X_tot, 200000, 6)
 
 ##Whiten

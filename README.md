@@ -1,5 +1,28 @@
-This repository contains our work for the data challenge of the course "Machine Learning with Kernel Methods" in spring 2022. We used several methods for this challenge, the best results were achieved using Histogram of Oriented Gradients features and a support vector classifier with a Laplacian kernel. These results can be reproduced by running
+As part of the course "Kernel Methods in Machine Learning" (Julien Mairal and Michaël Arbel, MVA, 2022), this assignment aims to implement kernel methods for image classification. We approach the problem in a particular context: no Deep Learning, use of kernel methods, and implementation of algorithms from scratch. This repository contains our work. 
+
+We have implemented two different methods, that give approximatively the same accuracy. Combining them helped us to improve slightly the accuracy.
+
+- First method: Laplacian kernel SVM on HOG features
+- Second method: whitenting + Unsupervised feature extraction using kmeans + Gaussian SVM inspired from http://proceedings.mlr.press/v15/coates11a/coates11a.pdf
+- Third method: looking at the votes of each class in the one vs one SVM of the first method. Choosing among the best candidates using the secong method.
+
+We used several methods for this challenge, the best results were achieved using Histogram of Oriented Gradients features and a support vector classifier with a Laplacian kernel. These results can be reproduced by running:
 ```
 python start.py
 ```
-The other methods we tried are included in the notebooks. They include unsupervised feature extraction from http://proceedings.mlr.press/v15/coates11a/coates11a.pdf, as well as denoising using kernel PCA.
+
+By default, only the first method is used. To combine both methods as previously explained, please use:
+```
+python start.py --combine True
+```
+In the other notebooks, you can find other things we have tried 
+- Data augmentation (did not help)
+- Kernel PCA (did not help)
+- Denoising (did not help)
+- Histogram of colors features (did not help)
+- Using other Kernels
+
+Please note that since it is our implementation of SVM, it is slow. It is from far the bottleneck in terms of complexity. So if you use the "--combine True" command line, it will be twice slower, even though the performances are (slightly) better. 
+
+Best regards,
+Jean and Tom
