@@ -114,8 +114,8 @@ def OVO_test(X_test, dic):
                     res[k][i]+=1
                 else:
                     res[k][j]+=1
-    res = np.argmax(res, axis=1)
-    return res
+    res2 = np.argmax(res, axis=1)
+    return res, res2
 """
 def OVR_train(X_train, y_train, sigma, C):
     dic = {}

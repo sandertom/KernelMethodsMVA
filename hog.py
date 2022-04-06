@@ -1,129 +1,86 @@
 """
-This implementation is inspired by the implementation of skimage's HOG implementation.
+This implementation is inspired from the implementation of skimage's HOG implementation.
 As you can see, the code is shorter from the original one, because we leave less choice to the user.
 https://github.com/scikit-image/scikit-image/blob/main/skimage/feature/_hog.py#L48-L307
 """
 import numpy as np
 
-def _hog_normalize_block(block, eps=1e-5):
-    #Normalizes each block with L1 regularization
-    out = block / np.sqrt(np.sum(block ** 2) + eps ** 2)
-    out = np.minimum(out, 0.2)
-    out = out / np.sqrt(np.sum(out ** 2) + eps ** 2)
-    return out
+def ch_gradient(ch):
+    #Computes the horizontal and vertical gradients of the image for one channel
+    g_r, g_c = np.zeros(ch.shape),  np.zeros(ch.shape)
+    g_r[1:-1, :] = ch[2:, :] - ch[:-2, :] #computes gradient for rows
+    g_c[:, 1:-1] = ch[:, 2:] - ch[:, :-2] #computes gradient for columns
+    return g_r, g_c
 
-def _hog_channel_gradient(channel):
-    #Computes the horizontal and vertical gradients of the image
-    g_row = np.empty(channel.shape, dtype=channel.dtype)
-    g_row[0, :] = 0
-    g_row[-1, :] = 0
-    g_row[1:-1, :] = channel[2:, :] - channel[:-2, :]
-    g_col = np.empty(channel.shape, dtype=channel.dtype)
-    g_col[:, 0] = 0
-    g_col[:, -1] = 0
-    g_col[:, 1:-1] = channel[:, 2:] - channel[:, :-2]
-    return g_row, g_col
-
-def cell_hog(magnitude,orientation,orientation_start, orientation_end, cell_columns, cell_rows,column_index, row_index, size_columns, size_rows, range_rows_start, range_rows_stop, range_columns_start, range_columns_stop):
+def cell_hog(norm,orientation,start_or, end_or, cell_c, cell_r,index_c, index_r, size_c, size_r, start_r, stop_r, start_c, stop_c):
     #Computes the weight of the gradient for a range of orientations in one cell
     total = 0.
-
-    for cell_row in range(range_rows_start, range_rows_stop):
-        cell_row_index = row_index + cell_row
-        if (cell_row_index < 0 or cell_row_index >= size_rows):
-            continue
-        for cell_column in range(range_columns_start, range_columns_stop):
-            cell_column_index = column_index + cell_column
-            if (cell_column_index < 0 or cell_column_index >= size_columns
-                    or orientation[cell_row_index, cell_column_index]
-                    >= orientation_start
-                    or orientation[cell_row_index, cell_column_index]
-                    < orientation_end):
-                continue
-            total += magnitude[cell_row_index, cell_column_index]
-
-    return total / (cell_rows * cell_columns)
+    for cell_row in range(start_r, stop_r):
+        cell_index_r = index_r + cell_row
+        if (cell_index_r >= 0 and cell_index_r < size_r):
+            for cell_column in range(start_c, stop_c):
+                cell_index_c = index_c + cell_column
+                if (cell_index_c >= 0 and cell_index_c < size_c and orientation[cell_index_r, cell_index_c] < start_or and orientation[cell_index_r, cell_index_c] > end_or):
+                    total += norm[cell_index_r, cell_index_c]
+    return total/(cell_r * cell_c)
 
 
-def hog_histograms(gradient_columns,gradient_rows,cell_columns,cell_rows,size_columns, size_rows,number_of_cells_columns, number_of_cells_rows, number_of_orientations, orientation_histogram):
+def normalize_block_L2(block, eps=1e-10): #Normalizes each block with "L2-Hys"" regularization
+    out = block/np.sqrt(np.sum(block**2)+eps)
+    out = np.minimum(out, 0.2)
+    out = out/np.sqrt(np.sum(out**2)+eps)
+    return out
+
+def histograms_hog(gradient_columns,gradient_rows,cell_c,cell_r,size_c, size_r,number_of_cells_c, number_of_cells_r, number_of_orientations, orientation_histogram):
     #computes the histogram of orientations for each cell
-    magnitude = np.hypot(gradient_columns,gradient_rows)
-    orientation = np.rad2deg(np.arctan2(gradient_rows, gradient_columns)) % 180
+    norm = np.hypot(gradient_columns,gradient_rows)  #sqrt(x1**2 + x2**2) element-wise, norm of the gradients
+    orientation = np.rad2deg(np.arctan2(gradient_rows, gradient_columns)) % 180 #orientations
 
-    r_0 = cell_rows // 2
-    c_0 = cell_columns // 2
-    cc = cell_rows * number_of_cells_rows
-    cr = cell_columns * number_of_cells_columns
-    range_rows_stop = int((cell_rows + 1) / 2)
-    range_rows_start = int(-(cell_rows / 2))
-    range_columns_stop = int((cell_columns + 1) / 2)
-    range_columns_start = int(-(cell_columns / 2))
-    number_of_orientations_per_180 = 180. / number_of_orientations
+    r0, c0, cc, cr= cell_r//2, cell_c//2, cell_r*number_of_cells_r, cell_c * number_of_cells_c
+    stop_r, start_r, stop_c, start_c = int((cell_r + 1) / 2),int(-(cell_r / 2)), int((cell_c + 1) / 2), int(-(cell_c / 2))
+    nbr_or = 180. / number_of_orientations
 
     for i in range(number_of_orientations):
-        orientation_start = number_of_orientations_per_180 * (i + 1)
-        orientation_end = number_of_orientations_per_180 * i
-        c = c_0
-        r = r_0
-        r_i = 0
-        c_i = 0
+        start_or = nbr_or*(i+1)
+        end_or = nbr_or*i
+        c,r,ri,ci = c0,r0,0,0
         while r < cc:
-            c_i = 0
-            c = c_0
+            ci,c = 0,c0
             while c < cr:
-                orientation_histogram[r_i, c_i, i] = \
-                    cell_hog(magnitude, orientation,
-                             orientation_start, orientation_end,
-                             cell_columns, cell_rows, c, r,
-                             size_columns, size_rows,
-                             range_rows_start, range_rows_stop,
-                             range_columns_start, range_columns_stop)
-                c_i += 1
-                c += cell_columns
-            r_i += 1
-            r += cell_rows
+                orientation_histogram[ri, ci, i] = cell_hog(norm, orientation,start_or, end_or,cell_c, cell_r, c, r, size_c, size_r, start_r, stop_r,start_c, stop_c)
+                ci += 1
+                c += cell_c
+            ri += 1
+            r += cell_r
 
 def hog(image, orientations=9, pixels_per_cell=(8, 8), cells_per_block=(3, 3)):
     #Combines evertything and combines multichannel HOG
-    g_row_by_ch = np.empty_like(image)
-    g_col_by_ch = np.empty_like(image)
-    g_magn = np.empty_like(image)
+    g_r_by_ch, g_c_by_ch, g_magn = np.empty_like(image), np.empty_like(image), np.empty_like(image)
 
-    for idx_ch in range(image.shape[2]):
-        g_row_by_ch[:, :, idx_ch], g_col_by_ch[:, :, idx_ch] = _hog_channel_gradient(image[:, :, idx_ch])
-        g_magn[:, :, idx_ch] = np.hypot(g_row_by_ch[:, :, idx_ch], g_col_by_ch[:, :, idx_ch])
+    for index_ch in range(3):
+        g_r_by_ch[:, :, index_ch], g_c_by_ch[:, :, index_ch] = ch_gradient(image[:, :, index_ch])
+        g_magn[:, :, index_ch] = np.hypot(g_r_by_ch[:, :, index_ch], g_c_by_ch[:, :, index_ch])
 
     idcs_max = g_magn.argmax(axis=2)
     rr, cc = np.meshgrid(np.arange(image.shape[0]),np.arange(image.shape[1]),indexing='ij',sparse=True)
-    g_row = g_row_by_ch[rr, cc, idcs_max]
-    g_col = g_col_by_ch[rr, cc, idcs_max]
+    g_r, g_c = g_r_by_ch[rr, cc, idcs_max], g_c_by_ch[rr, cc, idcs_max]
+    s_r, s_c = image.shape[:2]
+    c_r, c_c = pixels_per_cell
+    b_r, b_c = cells_per_block
 
-    s_row, s_col = image.shape[:2]
-    c_row, c_col = pixels_per_cell
-    b_row, b_col = cells_per_block
-
-    n_cells_row = int(s_row // c_row) 
-    n_cells_col = int(s_col // c_col)
+    n_cells_r, n_cells_c= int(s_r // c_r), int(s_c // c_c)
 
     # compute orientations integral images
-    orientation_histogram = np.zeros((n_cells_row, n_cells_col, orientations),dtype=float)
-    g_row = g_row.astype(float, copy=False)
-    g_col = g_col.astype(float, copy=False)
-
-    hog_histograms(g_col, g_row, c_col, c_row, s_col, s_row,n_cells_col, n_cells_row, orientations, orientation_histogram)
+    orientation_histogram = np.zeros((n_cells_r, n_cells_c, orientations),dtype=float)
+    g_r, g_c = g_r.astype(float, copy=False), g_c.astype(float, copy=False)
+    histograms_hog(g_c, g_r, c_c, c_r, s_c, s_r,n_cells_c, n_cells_r, orientations, orientation_histogram)
 
     # now compute the histogram for each cell
-
-    n_blocks_row = (n_cells_row - b_row) + 1
-    n_blocks_col = (n_cells_col - b_col) + 1
-    normalized_blocks = np.zeros((n_blocks_row, n_blocks_col, b_row, b_col, orientations))
-
-    for r in range(n_blocks_row):
-        for c in range(n_blocks_col):
-            block = orientation_histogram[r:r + b_row, c:c + b_col, :]
-            normalized_blocks[r, c, :] = \
-                _hog_normalize_block(block)
-
-    normalized_blocks = normalized_blocks.ravel()
-
-    return normalized_blocks
+    n_blocks_r, n_blocks_c= (n_cells_r - b_r) + 1, (n_cells_c - b_c) + 1
+    normalized_blocks = np.zeros((n_blocks_r, n_blocks_c, b_r, b_c, orientations))
+    for r in range(n_blocks_r):
+        for c in range(n_blocks_c):
+            block = orientation_histogram[r:r + b_r, c:c + b_c, :]
+            normalized_blocks[r, c, :] = normalize_block_L2(block)
+            
+    return normalized_blocks.ravel()
