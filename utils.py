@@ -113,4 +113,13 @@ def post_processing(X):
     #X = np.hstack([X, np.ones((len(X), 1))])
     return X
 
+def decision(a,b):
+    """
+    Used to combine both methods. b is a vector of votes (output of the HOG model), and a is the single output of the patch model.
+    if a is among the top scores of the hog model, than it is chosen. otherwise, we trust the hog model.
+    """
+    if b[a] in ([6,7,8,9]):
+        return a
+    else:
+        return np.argmax(b)
 
