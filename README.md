@@ -6,8 +6,9 @@ We have implemented two different methods, that give approximatively the same ac
 - Second method: whitenting + Unsupervised feature extraction using kmeans + Gaussian SVM inspired from http://proceedings.mlr.press/v15/coates11a/coates11a.pdf
 - Third method: looking at the votes of each class in the one vs one SVM of the first method. Choosing among the best candidates using the secong method.
 
-These results can be reproduced by running:
+These results can be reproduced by running: 
 ```
+kaggle competitions download -c mva-mash-kernel-methods-2021-2022
 python start.py
 ```
 By default, only the first method is used. To combine both methods as previously explained, please use:

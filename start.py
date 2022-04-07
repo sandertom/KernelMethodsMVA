@@ -47,7 +47,7 @@ X_train = post_processing(X_train)
 X_test = post_processing(X_test)
 
 print("Fitting SVM...")
-dic = OVO_train(X_train, Ytr, sigma = 60, C = 10, ker = kernels.LaplacianRBFKernel)
+dic = OVO_train(X_train, Ytr, sigma = 60, C = 10, ker = kernels.RBF)
 _, pred = OVO_test(X_test, dic)
 
 if config["combine"]:
@@ -56,7 +56,7 @@ if config["combine"]:
     Xtr_hog = np.array([hog(image) for image in Xtr])
     Xte_hog = np.array([hog(image) for image in Xte])
     print("Fitting SVM...")
-    dic2 = OVO_train(Xtr_hog, Ytr, sigma = 3, C = 1) #default is Laplacian kernel
+    dic2 = OVO_train(Xtr_hog, Ytr, sigma = 3, C = 1, ker=kernels.LaplacianRBFKernel) #Laplacian kernel
     allvotes,_ = OVO_test(Xte_hog, dic2)
     pred = np.array([decision(pred[i],allvotes[i]) for i in range(len(pred))])
 
@@ -64,4 +64,4 @@ print("done!")
 aux = pd.DataFrame(pred).reset_index()
 aux['index']+=1
 aux.rename(columns={'index':'Id', 0:"Prediction"}, inplace=True)
-pd.DataFrame(aux).to_csv("pred", index=False)
+pd.DataFrame(aux).to_csv("Yte.csv", index=False)
