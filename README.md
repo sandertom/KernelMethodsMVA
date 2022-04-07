@@ -7,8 +7,9 @@ We have implemented two different methods, that give approximatively the same ac
 - Third method: looking at the votes of each class in the one vs one SVM of the first method. Choosing among the best candidates using the secong method.
 
 These results can be reproduced by running: 
+YOU NEED TO HAVE DE DATA DOWNLOADED IN a folder "data"! too heavy to be on github!!!
+
 ```
-kaggle competitions download -c mva-mash-kernel-methods-2021-2022
 python start.py
 ```
 By default, only the first method is used. To combine both methods as previously explained, please use:
